@@ -32,6 +32,7 @@ setup_hf_shared_cache.sh
 migrate_hf_hub_cache_to_nas.sh
 migrate_hf_datasets_cache_to_nas.sh
 cleanup_local_hf_hub_cache.sh
+NEW_USER_GUIDE.md
 ```
 
 ### `setup_hf_shared_cache.sh`
@@ -167,6 +168,59 @@ PY
 /nas/DO_NOT_EDIT_OR_DELETE_SHARED_CACHE/HuggingFace/hub
 /nas/DO_NOT_EDIT_OR_DELETE_SHARED_CACHE/HuggingFace/datasets
 /home/alice/.cache/huggingface/token
+```
+
+如果用户使用 zsh，并且重新登录后环境变量仍然是 `None`，说明 zsh 没有读取 `/etc/profile.d/huggingface-cache.sh`。先检查是否已经配置过：
+
+```bash
+grep -R "huggingface-cache.sh" /etc/zsh /etc/zprofile /etc/zshrc 2>/dev/null
+```
+
+如果没有任何输出，可以添加系统级 zsh 入口：
+
+```bash
+sudo tee -a /etc/zsh/zprofile >/dev/null <<'EOF'
+
+# Load shared Hugging Face cache environment for zsh login shells.
+if [ -r /etc/profile.d/huggingface-cache.sh ]; then
+  emulate sh -c '. /etc/profile.d/huggingface-cache.sh'
+fi
+EOF
+```
+
+然后让 zsh 用户重新 SSH 登录，再执行上面的 Python 验证命令。
+
+测试 bash 用户登录后是否正常，可以用目标用户启动 login shell：
+
+```bash
+sudo -iu alice bash -lc 'env | grep -E "^(HF_HUB_CACHE|HF_DATASETS_CACHE|HF_TOKEN_PATH)="'
+```
+
+如果想用 Python 验证，使用单行命令，避免嵌套 heredoc 引号问题：
+
+```bash
+sudo -iu alice bash -lc 'python -c "import os; print(os.getenv(\"HF_HUB_CACHE\")); print(os.getenv(\"HF_DATASETS_CACHE\")); print(os.getenv(\"HF_TOKEN_PATH\"))"'
+```
+
+也可以直接通过 SSH 登录该用户后执行：
+
+```bash
+echo "${SHELL}"
+python - <<'PY'
+import os
+
+print(os.getenv("HF_HUB_CACHE"))
+print(os.getenv("HF_DATASETS_CACHE"))
+print(os.getenv("HF_TOKEN_PATH"))
+PY
+```
+
+如果输出是 `None`，先检查用户 shell 和 profile 文件：
+
+```bash
+getent passwd alice
+ls -l /etc/profile.d/huggingface-cache.sh
+bash -lc 'echo "${HF_HUB_CACHE}"; echo "${HF_DATASETS_CACHE}"; echo "${HF_TOKEN_PATH}"'
 ```
 
 ### 3. 迁移 hub cache
@@ -548,4 +602,3 @@ sudo COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 sudo EXCLUDE_DIRS=/data/xzh DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```
-
