@@ -399,6 +399,8 @@ sudo DRY_RUN=1 COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 sudo COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 ```
 
+如果需要跳过某些用户目录，在 hub 和 datasets 迁移命令前都加上 `EXCLUDE_DIRS=/data/xzh`；多个目录用冒号分隔。dry-run 和正式执行都要传入相同的排除列表。
+
 如果需要并行迁移，可以使用 `fpsync`：
 
 ```bash
@@ -415,13 +417,13 @@ sudo COPY_BACKEND=fpsync FPSYNC_JOBS=8 COPY_LINKS=yes ./migrate_hf_datasets_cach
 预览清理命令，不会删除：
 
 ```bash
-sudo EXCLUDE_DIRS=/data/xzh DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```
 
 正式清理：
 
 ```bash
-sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```
 
 这个命令会删除每个合法用户的：

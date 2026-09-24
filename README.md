@@ -237,6 +237,13 @@ sudo DRY_RUN=1 ./migrate_hf_hub_cache_to_nas.sh /data
 sudo COPY_LINKS=yes ./migrate_hf_hub_cache_to_nas.sh /data
 ```
 
+如果要跳过某些用户目录，预览和正式执行时都设置 `EXCLUDE_DIRS`：
+
+```bash
+sudo EXCLUDE_DIRS=/data/xzh DRY_RUN=1 COPY_LINKS=yes ./migrate_hf_hub_cache_to_nas.sh /data
+sudo EXCLUDE_DIRS=/data/xzh COPY_LINKS=yes ./migrate_hf_hub_cache_to_nas.sh /data
+```
+
 并行迁移，适合本地盘或性能较好的 NAS：
 
 ```bash
@@ -257,6 +264,13 @@ sudo DRY_RUN=1 ./migrate_hf_datasets_cache_to_nas.sh /data
 
 ```bash
 sudo COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
+```
+
+迁移 datasets 时使用相同的排除参数：
+
+```bash
+sudo EXCLUDE_DIRS=/data/xzh DRY_RUN=1 COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
+sudo EXCLUDE_DIRS=/data/xzh COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 ```
 
 并行迁移：
@@ -323,13 +337,13 @@ PY
 先预览。下面命令不会删除，因为默认 `DRY_RUN=1`：
 
 ```bash
-sudo EXCLUDE_DIRS=/data/xzh DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```
 
 正式删除：
 
 ```bash
-sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```
 
 只删除 `hub`：
@@ -425,6 +439,7 @@ DRY_RUN=0
 COPY_BACKEND=rsync
 FPSYNC_JOBS=8
 COPY_LINKS=auto
+EXCLUDE_DIRS=
 ```
 
 datasets 迁移：
@@ -436,7 +451,10 @@ DRY_RUN=0
 COPY_BACKEND=rsync
 FPSYNC_JOBS=8
 COPY_LINKS=auto
+EXCLUDE_DIRS=
 ```
+
+`EXCLUDE_DIRS` 在两个迁移脚本及清理脚本中均可使用。填扫描目录下要跳过的完整用户目录路径；多个目录用冒号分隔，例如 `/data/xzh:/data/yy`。迁移和清理是独立命令，需要分别传入该参数。
 
 `COPY_BACKEND` 可选值：
 
@@ -599,6 +617,6 @@ sudo COPY_LINKS=yes ./migrate_hf_hub_cache_to_nas.sh /data
 sudo DRY_RUN=1 COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 sudo COPY_LINKS=yes ./migrate_hf_datasets_cache_to_nas.sh /data
 
-sudo EXCLUDE_DIRS=/data/xzh DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
-sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
+sudo EXCLUDE_DIRS=/data/xzh CONFIRM_DELETE=1 DRY_RUN=0 DELETE_HUB=1 DELETE_DATASETS=1 ./cleanup_local_hf_hub_cache.sh /data
 ```

@@ -8,6 +8,7 @@ DRY_RUN="${DRY_RUN:-0}"
 COPY_BACKEND="${COPY_BACKEND:-rsync}"
 FPSYNC_JOBS="${FPSYNC_JOBS:-8}"
 COPY_LINKS="${COPY_LINKS:-auto}"
+EXCLUDE_DIRS="${EXCLUDE_DIRS:-}"
 
 usage() {
   echo "Usage:"
@@ -15,6 +16,7 @@ usage() {
   echo "  sudo ${0} /home"
   echo "  sudo COPY_BACKEND=fpsync FPSYNC_JOBS=8 ${0} /data"
   echo "  sudo COPY_LINKS=yes ${0} /data"
+  echo "  sudo EXCLUDE_DIRS=/data/xzh:/data/yy ${0} /data"
   echo
   echo "Please specify exactly one scan root directory, for example: /data or /home"
 }
@@ -37,6 +39,23 @@ run() {
   fi
 }
 
+is_excluded_dir() {
+  local dir="${1}"
+  local exclude_dir
+  local -a exclude_dirs_array
+
+  [[ -n "${EXCLUDE_DIRS}" ]] || return 1
+
+  IFS=':' read -r -a exclude_dirs_array <<< "${EXCLUDE_DIRS}"
+  for exclude_dir in "${exclude_dirs_array[@]}"; do
+    if [[ -n "${exclude_dir}" && "${dir}" == "${exclude_dir}" ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 copy_hub_cache() {
   local source_hub_cache="${1}"
   local target_hub_cache="${2}"
@@ -45,13 +64,13 @@ copy_hub_cache() {
 
   rsync_options=(
     -a
-    --info=progress2
+    "--info=progress2"
     --ignore-existing
-    --partial-dir=.rsync-partial
-    --exclude='*.lock'
-    --exclude='*.incomplete'
-    --exclude='tmp*'
-    --exclude='.rsync-partial/'
+    "--partial-dir=.rsync-partial"
+    "--exclude=*.lock"
+    "--exclude=*.incomplete"
+    "--exclude=tmp*"
+    "--exclude=.rsync-partial/"
   )
 
   if [[ "${COPY_LINKS_EFFECTIVE}" == "1" ]]; then
@@ -209,6 +228,7 @@ echo "Copy backend: ${COPY_BACKEND}"
 echo "Fpsync jobs: ${FPSYNC_JOBS}"
 echo "Copy links mode: ${COPY_LINKS}"
 echo "Copy links effective: ${COPY_LINKS_EFFECTIVE}"
+echo "Exclude dirs: ${EXCLUDE_DIRS:-none}"
 
 # 从 /etc/login.defs 读取普通用户 UID 最小值，仅作为日志参考。
 log "从 /etc/login.defs 读取普通用户 UID 最小值。"
@@ -286,6 +306,12 @@ while IFS= read -r -d '' dir; do
   # 从目录路径中取出最后一级名称，作为候选用户名。
   user="$(basename "${dir}")"
   log "处理候选用户目录：${dir}"
+
+  if is_excluded_dir "${dir}"; then
+    log "目录在排除列表中，跳过：${dir}"
+    skipped_entries+=("${dir} -> skipped: excluded by EXCLUDE_DIRS")
+    continue
+  fi
 
   # 跳过 lost+found。
   if [[ "${user}" == "lost+found" ]]; then
